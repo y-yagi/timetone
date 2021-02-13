@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/0xAX/notificator"
 	"github.com/robfig/cron"
@@ -25,7 +27,9 @@ const (
 )
 
 var (
-	cfg Config
+	cfg   Config
+	flags *flag.FlagSet
+	list  bool
 )
 
 func init() {
@@ -36,9 +40,21 @@ func init() {
 	}
 }
 
+func setFlags() {
+	flags = flag.NewFlagSet(app, flag.ExitOnError)
+	flags.BoolVar(&list, "l", false, "list as crontab format")
+}
+
 func main() {
+	setFlags()
+	flags.Parse(os.Args[1:])
 	if len(cfg.Jobs) == 0 {
 		fmt.Println("Job doesn't defined.")
+		return
+	}
+
+	if list {
+		printList()
 		return
 	}
 
@@ -70,4 +86,12 @@ func main() {
 	c.Start()
 
 	<-done
+}
+
+func printList() {
+	buf := ""
+	for _, job := range cfg.Jobs {
+		buf += fmt.Sprintf("%s %s\n", job.Spec, strings.Join(job.Command, " "))
+	}
+	fmt.Printf("%s", buf)
 }
